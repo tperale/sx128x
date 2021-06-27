@@ -1,0 +1,3 @@
+[submodule "contiki-ng"]
+	path = contiki-ng
+	url = git@github.com:tperale/contiki-ng.git
