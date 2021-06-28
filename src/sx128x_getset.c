@@ -513,7 +513,7 @@ void sx128x_set_rx(sx128x_t *dev)
     }
 }
 
-void sx128x_set_cad(sx128x_t *dev, uint32_t timeout)
+void sx128x_set_cad(sx128x_t *dev, uint8_t cad_symbols)
 {
     sx128x_cmd_clear_irq_status(dev, SX128X_IRQ_REG_ALL);
     switch (dev->settings.modem) {
@@ -534,7 +534,7 @@ void sx128x_set_cad(sx128x_t *dev, uint32_t timeout)
         /* ztimer_set(ZTIMER_MSEC, &(dev->_internal.rx_timeout_timer), dev->settings.lora.rx_timeout); */
     }
 
-    sx128x_cmd_set_cad_params(dev, 0);
+    sx128x_cmd_set_cad_params(dev, cad_symbols);
     sx128x_set_op_mode(dev, SX128X_RF_LORA_OPMODE_CAD);
 }
 

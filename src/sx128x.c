@@ -239,7 +239,7 @@ sx128x_receiving_packet(void) {
     return true;
   }
 
-  sx128x_set_cad(&SX128X_DEV, 0);
+  sx128x_set_cad(&SX128X_DEV, SX128X_LORA_CAD_04_SYMBOL);
   uint16_t irq_reg = 0;
   while(!(irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV))) {
     clock_delay_usec(1000);
