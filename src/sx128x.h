@@ -32,6 +32,7 @@
 #include "dev/radio.h"
 #include "dev/spi.h"
 #include "dev/gpio-hal.h"
+#include "sys/_stdint.h"
 /* #include "sx128x-getset.h" */
 
 #ifdef __cplusplus
@@ -41,17 +42,17 @@ extern "C" {
 #ifdef SX128X_SPI_SCK_PORT_CONF
 #define SX128X_SPI_SCK_PORT SX128X_SPI_SCK_PORT_CONF
 #else
-#define SX128X_SPI_SCK_PORT SPI1_CLK_PORT
+#define SX128X_SPI_SCK_PORT GPIO_B_NUM
 #endif
 #ifdef SX128X_SPI_MISO_PORT_CONF
 #define SX128X_SPI_MISO_PORT SX128X_SPI_MISO_PORT_CONF
 #else
-#define SX128X_SPI_MISO_PORT SPI1_RX_PORT
+#define SX128X_SPI_MISO_PORT GPIO_B_NUM
 #endif
 #ifdef SX128X_SPI_MOSI_PORT_CONF
 #define SX128X_SPI_MOSI_PORT SX128X_SPI_MOSI_PORT_CONF
 #else
-#define SX128X_SPI_MOSI_PORT SPI1_TX_PORT
+#define SX128X_SPI_MOSI_PORT GPIO_B_NUM
 #endif
 
 #ifdef SX128X_SPI_CS_PORT_CONF
@@ -63,25 +64,25 @@ extern "C" {
 #ifdef SX128X_SPI_SCK_CONF
 #define SX128X_SPI_SCK SX128X_SPI_SCK_CONF
 #else
-#define SX128X_SPI_SCK SPI1_CLK_PIN
+#define SX128X_SPI_SCK 2
 #endif
 
 #ifdef SX128X_SPI_MISO_CONF
 #define SX128X_SPI_MISO SX128X_SPI_MISO_CONF
 #else
-#define SX128X_SPI_MISO SPI1_RX_PIN
+#define SX128X_SPI_MISO 3
 #endif
 
 #ifdef SX128X_SPI_MOSI_CONF
 #define SX128X_SPI_MOSI SX128X_SPI_MOSI_CONF
 #else
-#define SX128X_SPI_MOSI SPI1_TX_PIN
+#define SX128X_SPI_MOSI 1
 #endif
 
 #ifdef SX128X_SPI_CS_CONF
 #define SX128X_SPI_CS SX128X_SPI_CS_CONF
 #else
-#define SX128X_SPI_CS 4
+#define SX128X_SPI_CS 3
 #endif
 
 #ifdef SX128X_SPI_BITRATE_CONF
@@ -111,13 +112,13 @@ extern "C" {
 #ifdef SX128X_RESET_GPIO_PORT_CONF
 #define SX128X_RESET_GPIO_PORT SX128X_RESEST_GPIO_PORT_CONF
 #else
-#define SX128X_RESET_GPIO_PORT GPIO_B_NUM
+#define SX128X_RESET_GPIO_PORT GPIO_A_NUM
 #endif
 
 #ifdef SX128X_RESET_GPIO_CONF
 #define SX128X_RESET_GPIO SX128X_RESEST_GPIO_CONF
 #else
-#define SX128X_RESET_GPIO 0
+#define SX128X_RESET_GPIO 2
 #endif
 
 #ifdef SX128X_DIO1_PORT_CONF
@@ -129,19 +130,19 @@ extern "C" {
 #ifdef SX128X_DIO1_PIN_CONF 
 #define SX128X_DIO1_PIN SX128X_DIO1_PIN_CONF 
 #else
-#define SX128X_DIO1_PIN 6
+#define SX128X_DIO1_PIN 4
 #endif
 
 #ifdef SX128X_BUSY_PORT_CONF
 #define SX128X_BUSY_PORT SX128X_BUSY_PORT_CONF
 #else
-#define SX128X_BUSY_PORT GPIO_C_NUM
+#define SX128X_BUSY_PORT GPIO_A_NUM
 #endif
 
 #ifdef SX128X_BUSY_PIN_CONF 
 #define SX128X_BUSY_PIN SX128X_BUSY_PIN_CONF 
 #else
-#define SX128X_BUSY_PIN 1
+#define SX128X_BUSY_PIN 5
 #endif
 
 #ifdef SX128X_CONF_BUSY_RX
@@ -362,7 +363,7 @@ typedef struct {
 typedef struct {
     uint32_t channel;                  /**< Radio channel */
     uint8_t state;                     /**< Radio state */
-    sx128x_mode mode;
+    uint8_t opmode;
     sx128x_rx_mode rx;
     uint8_t modem;                     /**< Driver model (FSK or LoRa) */
     sx128x_lora_settings_t lora;       /**< LoRa settings */
@@ -682,7 +683,7 @@ uint8_t sx128x_get_op_mode(const sx128x_t *dev);
  * @param[in] dev                      The sx128x device descriptor
  * @param[in] op_mode                  The new operating mode
  */
-void sx128x_set_op_mode(const sx128x_t *dev, uint8_t op_mode);
+void sx128x_set_op_mode(sx128x_t *dev, uint8_t op_mode);
 
 /**
  * @brief   Gets the SX128X bandwidth

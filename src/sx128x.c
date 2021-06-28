@@ -153,10 +153,11 @@ static int
 sx128x_prepare(const void *payload, unsigned short payload_len) {
   LOG_DBG("Prepare %d bytes\n", payload_len);
 
-  /* if (SX128X_DEV.settings.mode == sx128x_mode_sleep || SX128X_DEV.settings.mode == sx128x_mode_receiver) { */
-  /*   sx128x_set_op_mode(&SX128X_DEV, sx128x_mode_standby); */
-  /*   sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_off); */
-  /* } */
+  if (sx128x_get_op_mode(&SX128X_DEV) == SX128X_RF_OPMODE_SLEEP || sx128x_get_op_mode(&SX128X_DEV) == SX128X_RF_OPMODE_RECEIVER) {
+    sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
+    sx128x_set_state(&SX128X_DEV, SX128X_RF_IDLE);
+    sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_off);
+  }
  
   sx128x_set_payload_length(&SX128X_DEV, payload_len);;
   sx128x_cmd_set_buffer_base_address(&SX128X_DEV, 0, 0);
@@ -176,16 +177,20 @@ sx128x_transmit(unsigned short payload_len) {
   // TODO Set a timeout
   // TODO wait for interrupt
   // TODO Busy wait or interrupt based
-  /* uint16_t irq_reg = 0; */
-  /* while(!(irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV))) { */
-  /*   clock_delay_usec(2000); */
-  /*   watchdog_periodic(); */
-  /* } */
-  /* sx128x_cmd_get_irq_status(&SX128X_DEV); */
-  // TODO Check the IRQ
-  LOG_DBG("Transmited %d bytes\n", payload_len);
-  /* sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY); */
-  return RADIO_TX_OK;
+  uint16_t irq_reg = 0;
+  while(!(irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV))) {
+    clock_delay_usec(1000);
+    watchdog_periodic();
+  }
+  sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
+  sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
+  if (irq_reg | SX128X_IRQ_REG_TX_DONE) {
+    LOG_DBG("Transmited %d bytes with success\n", payload_len);
+    return RADIO_TX_OK;
+  } else {
+    LOG_DBG("Failed to transmit %d bytes\n", payload_len);
+    return RADIO_TX_ERR;
+  }
 }
 
 static int

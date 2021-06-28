@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+#include "sys/_stdint.h"
 #include "sys/log.h"
 #include "lora24.h"
 
@@ -524,13 +525,12 @@ void sx128x_set_max_payload_len(const sx128x_t *dev, uint8_t maxlen)
 
 uint8_t sx128x_get_op_mode(const sx128x_t *dev)
 {
-    (void)(dev);
-    // TODO
-    return 1;
+    return dev->settings.opmode;
 }
 
-void sx128x_set_op_mode(const sx128x_t *dev, uint8_t op_mode)
+void sx128x_set_op_mode(sx128x_t *dev, uint8_t op_mode)
 {
+    dev->settings.opmode = op_mode;
     switch(op_mode) {
     case SX128X_RF_OPMODE_SLEEP:
         LOG_DBG("[sx128x] Set op mode: SLEEP\n");
