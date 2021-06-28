@@ -904,6 +904,14 @@ void sx128x_set_iq_invert(sx128x_t *dev, bool iq_invert);
  */
 void sx128x_set_freq_hop(sx128x_t *dev, bool freq_hop_on);
 
+/**
+ * @brief   Sets the SX128X in LoRa CAD mode
+ *
+ * @param[in] dev                      The sx128x device descriptor
+ * @param[in] timeout                  The length of the CAD
+ */
+void sx128x_set_cad(sx128x_t *dev, uint32_t timeout);
+
 extern sx128x_t __sx128x_dev;
 
 /* #ifdef SX128X_DEV_CONF */

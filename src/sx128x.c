@@ -115,8 +115,10 @@ static void sx128x_interrupt_dio1(gpio_hal_pin_mask_t pin_mask) {
   SX128X_DEV.irq = sx128x_cmd_get_irq_status(&SX128X_DEV);
   switch (SX128X_DEV.irq)  {
     case SX128X_IRQ_REG_TX_DONE:
+      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
       break;
     case SX128X_IRQ_REG_RX_TX_TIMEOUT:
+      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
       break;
     case SX128X_IRQ_REG_RX_DONE:
       SX128X_DEV._internal.rx_timestamp = RTIMER_NOW();
@@ -124,6 +126,12 @@ static void sx128x_interrupt_dio1(gpio_hal_pin_mask_t pin_mask) {
       sx128x_set_state(&SX128X_DEV, SX128X_RF_IDLE);
       sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
       // TODO read the packet length with cmd
+      break;
+    case SX128X_IRQ_REG_CAD_DONE:
+      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
+      break;
+    case SX128X_IRQ_REG_CAD_DETECTED:
+      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
       break;
   }
   // TODO Handle continuous reception
@@ -210,13 +218,12 @@ sx128x_pending_packet(void) {
     return false;
   }
 
-  uint8_t flags = sx128x_cmd_get_irq_status(&SX128X_DEV);
-  if (flags & SX128X_IRQ_REG_RX_DONE){
-    SX128X_DEV._internal.rx_timestamp = RTIMER_NOW() - US_TO_RTIMERTICKS(650);
-    sx128x_cmd_clear_irq_status(&SX128X_DEV, 0xFF);
+  uint16_t irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV);
+  if (irq_reg | SX128X_IRQ_REG_RX_DONE) {
+    sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
     sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_received);
-    LOG_DBG("Received packet\n");
   }
+
 #endif
 
   return SX128X_DEV._internal.pending;
@@ -232,18 +239,18 @@ sx128x_receiving_packet(void) {
     return true;
   }
 
-  // TODO implement the CAD
-  /* sx128x_set_op_mode(&SX128X_DEV, sx128x_mode_cad); */
-  /* while ((sx128x_read_register(SX128X_DEV.spi, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDONE) != RFLR_IRQFLAGS_CADDONE); */
-
-  /* if (sx128x_read_register(SX128X_DEV.spi, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) { */
-  /*   SX128X_DEV.receiv_timestamp = RTIMER_NOW(); // - US_TO_RTIMERTICKS(439) */
-  /*   sx128x_write_register(SX128X_DEV.spi, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE); */
-  /*   sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_receiving); */
-  /*   sx128x_set_op_mode(&SX128X_DEV, sx128x_mode_receiver); */
-  /* } else { */
-  /*   sx128x_write_register(SX128X_DEV.spi, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE); */
-  /* } */
+  sx128x_set_cad(&SX128X_DEV, 0);
+  uint16_t irq_reg = 0;
+  while(!(irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV))) {
+    clock_delay_usec(1000);
+    watchdog_periodic();
+  }
+  sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
+  sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
+  if (irq_reg | SX128X_IRQ_REG_CAD_DETECTED) {
+    sx128x_set_rx(&SX128X_DEV);
+    sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_receiving);
+  }
 #else
   // TODO interrupt based packet detection ?
 #endif

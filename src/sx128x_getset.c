@@ -109,6 +109,11 @@ void sx128x_cmd_set_rx(const sx128x_t *dev, uint8_t period_base, uint16_t period
     sx128x_cmd_burst(dev, SX128X_CMD_SET_RX, params, 3, NULL, 0);
 }
 
+void sx128x_cmd_set_cad_params(const sx128x_t *dev, uint8_t symbol_num)
+{
+    sx128x_cmd_burst(dev, SX128X_CMD_SET_CAD_PARAMS, &symbol_num, 1, NULL, 0);
+}
+
 void sx128x_cmd_set_cad(const sx128x_t *dev) {
     sx128x_cmd_burst(dev, SX128X_CMD_SET_CAD, NULL, 0, NULL, 0);
 }
@@ -152,11 +157,6 @@ void sx128x_cmd_set_tx_params(const sx128x_t *dev, int8_t power, uint8_t ramp_ti
     }
     uint8_t params[2] = {(uint8_t) (power + 18), ramp_time};
     sx128x_cmd_burst(dev, SX128X_CMD_SET_TX_PARAMS, params, 2, NULL, 0);
-}
-
-void sx128x_cmd_set_cad_params(const sx128x_t *dev, uint8_t symbol_num)
-{
-    sx128x_cmd_burst(dev, SX128X_CMD_SET_CAD_PARAMS, &symbol_num, 1, NULL, 0);
 }
 
 void sx128x_cmd_set_buffer_base_address(const sx128x_t *dev, uint8_t tx_address, uint8_t rx_address)
@@ -358,6 +358,9 @@ void sx128x_set_state(sx128x_t *dev, uint8_t state)
     case SX128X_RF_TX_RUNNING:
         LOG_DBG("[sx128x] Change state: TX\n");
         break;
+    case SX128X_RF_CAD:
+        LOG_DBG("[sx128x] Change state: CAD\n");
+        break;
     default:
         LOG_DBG("[sx128x] Change state: UNKNOWN\n");
         break;
@@ -510,6 +513,33 @@ void sx128x_set_rx(sx128x_t *dev)
     }
 }
 
+void sx128x_set_cad(sx128x_t *dev, uint32_t timeout)
+{
+    sx128x_cmd_clear_irq_status(dev, SX128X_IRQ_REG_ALL);
+    switch (dev->settings.modem) {
+        case SX128X_PACKET_TYPE_LORA:
+        {
+            sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_CAD_DONE | SX128X_IRQ_REG_CAD_DETECTED, 0, 0);
+            break;
+        }
+        default:
+            LOG_DBG("[sx128x] Unsupported packet type\n");
+            return;
+    }
+
+    sx128x_set_state(dev, SX128X_RF_CAD);
+
+    /* Start RX timeout timer */
+    if (dev->settings.lora.rx_timeout != 0) {
+        /* ztimer_set(ZTIMER_MSEC, &(dev->_internal.rx_timeout_timer), dev->settings.lora.rx_timeout); */
+    }
+
+    sx128x_cmd_set_cad_params(dev, 0);
+    sx128x_set_op_mode(dev, SX128X_RF_LORA_OPMODE_CAD);
+}
+
+
+
 uint8_t sx128x_get_max_payload_len(const sx128x_t *dev)
 {
     (void)(dev);
@@ -551,6 +581,10 @@ void sx128x_set_op_mode(sx128x_t *dev, uint8_t op_mode)
     case SX128X_RF_OPMODE_TRANSMITTER:
         LOG_DBG("[sx128x] Set op mode: TRANSMITTER\n");
         sx128x_cmd_set_tx(dev, 0, 0);
+        break;
+    case SX128X_RF_LORA_OPMODE_CAD:
+        LOG_DBG("[sx128x] Set op mode: CAD\n");
+        sx128x_cmd_set_cad(dev);
         break;
     default:
         LOG_DBG("[sx128x] Set op mode: UNKNOWN (%d)\n", op_mode);
