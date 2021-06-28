@@ -220,7 +220,9 @@ sx128x_pending_packet(void) {
 
   uint16_t irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV);
   if (irq_reg | SX128X_IRQ_REG_RX_DONE) {
+    sx128x_cmd_get_packet_status(&SX128X_DEV);
     sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
+    sx128x_cmd_get_rx_buffer_status(&SX128X_DEV);
     sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_received);
   }
 
@@ -264,16 +266,19 @@ sx128x_read_packet(void *buf, unsigned short bufsize) {
     return 0;
   }
 
-  // TODO
-  /* SX128X_DEV.rx_rssi = sx128x_get_rssi(&SX128X_DEV); */
-  /* SX128X_DEV.rx_length = sx128x_read_register(SX128X_DEV.spi, REG_LR_RXNBBYTES); */
-  /* uint8_t last_rx_addr = sx128x_read_register(SX128X_DEV.spi, REG_LR_FIFORXCURRENTADDR); */
-  /* sx128x_write_register(SX128X_DEV.spi, REG_LR_FIFOADDRPTR, last_rx_addr); */
+  // TODO length and SNR should have already been fetched from the pending fn
+  sx128x_read_fifo(&SX128X_DEV, buf, SX128X_DEV._internal.rx_length < bufsize ? SX128X_DEV._internal.rx_length : bufsize);
+  if (SX128X_DEV._internal.rx_length < bufsize) {
+    ((uint8_t*) buf)[SX128X_DEV._internal.rx_length] = '\0';
+  }
+ 
   /* sx128x_read_fifo(SX128X_DEV.spi, buf, SX128X_DEV.rx_length < bufsize ? SX128X_DEV.rx_length : bufsize ); */
   /* if (SX128X_DEV.rx_length < bufsize) { */
   /*   ((uint8_t*) buf)[SX128X_DEV.rx_length] = '\0'; */
   /* } */
-  /* LOG_INFO("Received packet of %d bytes\n", SX128X_DEV.rx_length); */
+  LOG_INFO("Received packet of %d bytes\n", SX128X_DEV._internal.rx_length);
+
+  // TODO continuous rx handling
   /* sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_read); */
   /* if (SX128X_DEV.lora.rx_continuous) { */
   /*   sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_listening); */
@@ -316,7 +321,7 @@ radio_result_t sx128x_get_value(radio_param_t param, radio_value_t *value){
 
   switch(param) {
   case RADIO_PARAM_POWER_MODE:
-    *value = SX128X_DEV.settings.mode == sx128x_mode_standby ? RADIO_POWER_MODE_OFF : RADIO_POWER_MODE_ON;
+    *value = SX128X_DEV.settings.opmode == SX128X_RF_OPMODE_STANDBY ? RADIO_POWER_MODE_OFF : RADIO_POWER_MODE_ON;
     return RADIO_RESULT_OK;
   case RADIO_PARAM_CHANNEL:
     switch (sx128x_cmd_get_frequency(&SX128X_DEV)) {

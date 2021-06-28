@@ -376,7 +376,7 @@ typedef struct {
     /* Data that will be passed to events handler in application */
     /* ztimer_t tx_timeout_timer; */
     /* ztimer_t rx_timeout_timer; */
-    uint16_t rx_rssi;
+    int16_t rx_rssi;
     uint16_t rx_snr;
     uint16_t rx_length;
     rtimer_clock_t rx_timestamp;
@@ -543,8 +543,8 @@ void sx128x_cmd_set_packet_params(sx128x_t *dev, uint8_t param1, uint8_t param2,
  * @name    SX128X Communication status information
  * @{
  */
-uint8_t sx128x_cmd_get_rx_buffer_status(const sx128x_t *dev);
-uint8_t sx128x_cmd_get_packet_status(const sx128x_t *dev);
+uint8_t sx128x_cmd_get_rx_buffer_status(sx128x_t *dev);
+void sx128x_cmd_get_packet_status(sx128x_t *dev);
 uint8_t sx128x_cmd_get_rssi_inst(const sx128x_t *dev);
 /** @} */
 
@@ -910,7 +910,7 @@ void sx128x_set_freq_hop(sx128x_t *dev, bool freq_hop_on);
  * @param[in] dev                      The sx128x device descriptor
  * @param[in] symbols                  The number of symbols scanned for the CAD
  */
-void sx128x_set_cad(sx128x_t *dev, uint8_t cad_symbols)
+void sx128x_set_cad(sx128x_t *dev, uint8_t cad_symbols);
 
 extern sx128x_t __sx128x_dev;
 

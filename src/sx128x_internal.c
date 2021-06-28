@@ -143,9 +143,17 @@ void sx128x_write_fifo(const sx128x_t *dev, uint8_t *buffer, uint8_t size)
 
 void sx128x_read_fifo(const sx128x_t *dev, uint8_t *buffer, uint8_t size)
 {
-    /* uint8_t addr[3] = {0, 0, 0}; */
-    /* sx128x_cmd_burst(dev, SX128X_CMD_READ_BUF, addr, 3, buffer, size); */
-    // TODO
+    uint8_t cmd = SX128X_CMD_READ_BUF;
+    uint8_t offset = 0;
+
+    spi_select(&dev->params.spi);
+
+    spi_transfer(&dev->params.spi, &cmd, 1, NULL, 0, 0);
+    spi_transfer(&dev->params.spi, &offset, 1, NULL, 0, 0);
+    spi_transfer(&dev->params.spi, &size, 1, NULL, 0, 0);
+    spi_transfer(&dev->params.spi, NULL, 0, buffer, size, 0);
+
+    spi_deselect(&dev->params.spi);
 }
 
 int16_t sx128x_read_rssi(const sx128x_t *dev)

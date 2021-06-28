@@ -296,18 +296,40 @@ void sx128x_cmd_set_packet_params(sx128x_t *dev, uint8_t param1, uint8_t param2,
     }
 }
 
-uint8_t sx128x_cmd_get_rx_buffer_status(const sx128x_t *dev)
+uint8_t sx128x_cmd_get_rx_buffer_status(sx128x_t *dev)
 {
     (void) dev;
-    // TODO
-    return 0;
+    uint8_t nop = 0;
+    uint8_t status[2];
+    sx128x_cmd_burst(dev, SX128X_CMD_GET_RX_BUFFER_STATUS, &nop, 1, status, 2);
+
+    switch (dev->settings.modem) {
+        case SX128X_PACKET_TYPE_LORA:
+            dev->_internal.rx_length = status[0];
+            break;
+        default:
+            LOG_DBG("[sx128x] Not supported packet type\n");
+            break;
+    }
+
+    return dev->_internal.rx_length;
 }
 
-uint8_t sx128x_cmd_get_packet_status(const sx128x_t *dev)
+void sx128x_cmd_get_packet_status(sx128x_t *dev)
 {
-    (void) dev;
-    // TODO
-    return 0;
+    uint8_t nop = 0;
+    uint8_t status[5];
+    sx128x_cmd_burst(dev, SX128X_CMD_GET_PACKET_STATUS, &nop, 1, status, 5);
+
+    switch (dev->settings.modem) {
+        case SX128X_PACKET_TYPE_LORA:
+            dev->_internal.rx_rssi = -status[0] / 2;
+            dev->_internal.rx_snr = status[1] / 4;
+            break;
+        default:
+            LOG_DBG("[sx128x] Not supported packet type\n");
+            break;
+    }
 }
 
 void sx128x_cmd_set_dio_irq_params(const sx128x_t *dev, uint16_t dio1_mask, uint16_t dio2_mask, uint16_t dio3_mask) {
