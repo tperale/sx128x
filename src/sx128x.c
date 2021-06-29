@@ -53,7 +53,15 @@ sx128x_t __sx128x_dev = {
 
 int tsch_packet_duration(size_t len)
 {
-  return 0; // US_TO_RTIMERTICKS(t_packet(&(SX127X_DEV.lora), len));
+  return US_TO_RTIMERTICKS(LORA_T_PACKET_USEC(
+    sx128x_get_spreading_factor(&SX128X_DEV), 
+    sx128x_get_bandwidth(&SX128X_DEV), 
+    sx128x_get_crc(&SX128X_DEV), 
+    !sx128x_get_fixed_header_len_mode(&SX128X_DEV),
+    sx128x_get_coding_rate(&SX128X_DEV), 
+    sx128x_get_preamble_length(&SX128X_DEV),
+    len
+  ));
 } 
 
 /* TSCH timeslot timing (microseconds) */
