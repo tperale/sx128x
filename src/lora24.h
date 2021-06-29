@@ -250,13 +250,7 @@ enum {
 };
 /** @} */
 
-#define LORA24_BW_TO_KHZ(x) ( \
-    (x == LORA24_BW_200_KHZ) ? 200 : ( \
-      x == LORA24_BW_400_KHZ ? 400 : ( \
-        x == LORA24_BW_800_KHZ ? 800 : 1600 \
-      ) \
-    ) \
-)
+#define LORA24_BW_TO_KHZ(x) ((1 << x) * 200)
 #define CEILING_POS(X) ((X-(int)(X)) > 0 ? (int)(X+1) : (int)(X))
 #define LORA_T_SYM_USEC(sf, bw) ((1 << (sf)) * 1000 / (LORA24_BW_TO_KHZ(bw)))
 #define LORA_SYM_NB_5(sf, crc, header, cr, len) ( \
