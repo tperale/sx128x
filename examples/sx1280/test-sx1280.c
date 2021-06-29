@@ -61,23 +61,35 @@
 
 #define LOG_MODULE "MAIN"
 #define LOG_LEVEL LOG_LEVEL_DBG
+#define TIMEOUTVALUE (5 * 2000)
 
-static PT_THREAD(shell_recv(struct pt *pt, shell_output_func output, char *args))
-{
+static PT_THREAD(shell_recv(struct pt *pt, shell_output_func output, char *args)) {
   PT_BEGIN(pt);
   char buf[255];
+  int timeout = 0;
 
   NETSTACK_RADIO.on();
-  while (!NETSTACK_RADIO.receiving_packet()) {
+  while (!NETSTACK_RADIO.receiving_packet() && !NETSTACK_RADIO.pending_packet() && timeout < TIMEOUTVALUE) {
     watchdog_periodic();
     clock_delay_usec(500);
+    timeout++;
   }
-  SHELL_OUTPUT(output, "Waiting for pending\n");
-  while (!NETSTACK_RADIO.pending_packet()) {
-    watchdog_periodic();
-    clock_delay_usec(500);
+  if (!NETSTACK_RADIO.pending_packet()) {
+    SHELL_OUTPUT(output, "Waiting for pending\n");
+    while (!NETSTACK_RADIO.pending_packet() && timeout < TIMEOUTVALUE) {
+      watchdog_periodic();
+      clock_delay_usec(500);
+      timeout++;
+    }
   }
-  int len = NETSTACK_RADIO.read((void*) buf, 255);
+
+  if (timeout >= TIMEOUTVALUE) {
+    NETSTACK_RADIO.off();
+    SHELL_OUTPUT(output, "Recv timed out after 10sec\n");
+    PT_EXIT(pt);
+  }
+
+  int len = NETSTACK_RADIO.read((void *)buf, 255);
   NETSTACK_RADIO.off();
   SHELL_OUTPUT(output, "Received (%d bytes): '%s'\n", len, buf);
   PT_END(pt);
