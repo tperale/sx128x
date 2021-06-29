@@ -228,7 +228,7 @@ sx128x_pending_packet(void) {
   }
 
   uint16_t irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV);
-  if (irq_reg | SX128X_IRQ_REG_RX_DONE) {
+  if (irq_reg & SX128X_IRQ_REG_RX_DONE) {
     sx128x_cmd_get_packet_status(&SX128X_DEV);
     sx128x_cmd_get_rx_buffer_status(&SX128X_DEV);
     sx128x_set_state(&SX128X_DEV, SX128X_RF_IDLE);
@@ -253,13 +253,9 @@ sx128x_receiving_packet(void) {
 
   sx128x_set_cad(&SX128X_DEV, SX128X_LORA_CAD_04_SYMBOL);
   uint16_t irq_reg = 0;
-  while(!(irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV))) {
-    clock_delay_usec(1000);
-    watchdog_periodic();
-  }
-  if (irq_reg | SX128X_IRQ_REG_CAD_DETECTED) {
+  while(!(irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV)));
+  if (irq_reg & SX128X_IRQ_REG_CAD_DETECTED) {
     sx128x_set_rx(&SX128X_DEV);
-    sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_RECEIVER);
     sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_receiving);
   } else {
     sx128x_set_standby(&SX128X_DEV);
