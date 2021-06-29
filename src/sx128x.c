@@ -113,26 +113,36 @@ static void sx128x_interrupt_dio1(gpio_hal_pin_mask_t pin_mask) {
 #else
 static void sx128x_interrupt_dio1(gpio_hal_pin_mask_t pin_mask) { 
   SX128X_DEV.irq = sx128x_cmd_get_irq_status(&SX128X_DEV);
-  switch (SX128X_DEV.irq)  {
-    case SX128X_IRQ_REG_TX_DONE:
-      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
-      break;
-    case SX128X_IRQ_REG_RX_TX_TIMEOUT:
-      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
-      break;
-    case SX128X_IRQ_REG_RX_DONE:
-      SX128X_DEV._internal.rx_timestamp = RTIMER_NOW();
-      SX128X_DEV._internal.pending = 1;
-      sx128x_set_state(&SX128X_DEV, SX128X_RF_IDLE);
-      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
-      // TODO read the packet length with cmd
-      break;
-    case SX128X_IRQ_REG_CAD_DONE:
-      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
-      break;
-    case SX128X_IRQ_REG_CAD_DETECTED:
-      sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
-      break;
+  if (sx128x_get_op_mode(&SX128X_DEV) == SX128X_RF_OPMODE_RECEIVER) {
+    switch (SX128X_DEV.irq)  {
+      case SX128X_IRQ_REG_RX_DONE:
+        SX128X_DEV._internal.rx_timestamp = RTIMER_NOW();
+        sx128x_cmd_get_packet_status(&SX128X_DEV);
+        sx128x_cmd_get_rx_buffer_status(&SX128X_DEV);
+        sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_received);
+        sx128x_set_standby(&SX128X_DEV);
+        break;
+    }
+
+  } else if (sx128x_get_op_mode(&SX128X_DEV) == SX128X_RF_OPMODE_CAD) {
+    switch (SX128X_DEV.irq)  {
+      case SX128X_IRQ_REG_CAD_DONE:
+        sx128x_set_standby(&SX128X_DEV);
+        break;
+      case SX128X_IRQ_REG_CAD_DETECTED:
+        sx128x_set_rx(&SX128X_DEV);
+        sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_receiving);
+        break;
+    }
+  } else if (sx128x_get_op_mode(&SX128X_DEV) == SX128X_RF_OPMODE_TRANSMITTER) {
+    switch (SX128X_DEV.irq)  {
+      case SX128X_IRQ_REG_TX_DONE:
+        sx128x_set_standby(&SX128X_DEV);
+        break;
+      case SX128X_IRQ_REG_RX_TX_TIMEOUT:
+        sx128x_set_standby(&SX128X_DEV);
+        break;
+    }
   }
   // TODO Handle continuous reception
   /* if (SX128X_DEV.settings.lora.rx_continuous) { */
@@ -162,8 +172,7 @@ sx128x_prepare(const void *payload, unsigned short payload_len) {
   LOG_DBG("Prepare %d bytes\n", payload_len);
 
   if (sx128x_get_op_mode(&SX128X_DEV) == SX128X_RF_OPMODE_SLEEP || sx128x_get_op_mode(&SX128X_DEV) == SX128X_RF_OPMODE_RECEIVER) {
-    sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
-    sx128x_set_state(&SX128X_DEV, SX128X_RF_IDLE);
+    sx128x_set_standby(&SX128X_DEV);
     sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_off);
   }
  
@@ -191,7 +200,7 @@ sx128x_transmit(unsigned short payload_len) {
     watchdog_periodic();
   }
   sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
-  sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
+  sx128x_set_standby(&SX128X_DEV);
   if (irq_reg | SX128X_IRQ_REG_TX_DONE) {
     LOG_DBG("Transmited %d bytes with success\n", payload_len);
     return RADIO_TX_OK;
@@ -221,9 +230,10 @@ sx128x_pending_packet(void) {
   uint16_t irq_reg = sx128x_cmd_get_irq_status(&SX128X_DEV);
   if (irq_reg | SX128X_IRQ_REG_RX_DONE) {
     sx128x_cmd_get_packet_status(&SX128X_DEV);
-    sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
     sx128x_cmd_get_rx_buffer_status(&SX128X_DEV);
+    sx128x_set_state(&SX128X_DEV, SX128X_RF_IDLE);
     sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_received);
+    sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
   }
 
 #endif
@@ -247,12 +257,14 @@ sx128x_receiving_packet(void) {
     clock_delay_usec(1000);
     watchdog_periodic();
   }
-  sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
-  sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_STANDBY);
   if (irq_reg | SX128X_IRQ_REG_CAD_DETECTED) {
     sx128x_set_rx(&SX128X_DEV);
+    sx128x_set_op_mode(&SX128X_DEV, SX128X_RF_OPMODE_RECEIVER);
     sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_receiving);
+  } else {
+    sx128x_set_standby(&SX128X_DEV);
   }
+  sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
 #else
   // TODO interrupt based packet detection ?
 #endif
@@ -267,15 +279,12 @@ sx128x_read_packet(void *buf, unsigned short bufsize) {
   }
 
   // TODO length and SNR should have already been fetched from the pending fn
+  // TODO Make sure everything is OK in anycase
   sx128x_read_fifo(&SX128X_DEV, buf, SX128X_DEV._internal.rx_length < bufsize ? SX128X_DEV._internal.rx_length : bufsize);
   if (SX128X_DEV._internal.rx_length < bufsize) {
     ((uint8_t*) buf)[SX128X_DEV._internal.rx_length] = '\0';
   }
  
-  /* sx128x_read_fifo(SX128X_DEV.spi, buf, SX128X_DEV.rx_length < bufsize ? SX128X_DEV.rx_length : bufsize ); */
-  /* if (SX128X_DEV.rx_length < bufsize) { */
-  /*   ((uint8_t*) buf)[SX128X_DEV.rx_length] = '\0'; */
-  /* } */
   LOG_INFO("Received packet of %d bytes\n", SX128X_DEV._internal.rx_length);
 
   // TODO continuous rx handling
