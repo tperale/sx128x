@@ -148,26 +148,6 @@ extern "C" {
 #define CONFIG_LORA24_IQ_INVERTED_DEFAULT
 #endif
 
-/** @brief Set this to 1 to enable frequency hopping
- *
- * If Frequency hopping spread spectrum (FHSS) is enabled a portion of each LoRa
- * packet is transmitted on each hopping channel from a look up table of
- * frequencies managed by the host microcontroller.
-*/
-#ifdef DOXYGEN
-#define CONFIG_LORA24_FREQUENCY_HOPPING_DEFAULT
-#endif
-
-/** @brief Frequency hopping period in symbols
- *
- * Configure the hopping period, in symbols, time which each transmission will
- * dwell in any given channel. One symbol has a length in time of (2^SF)/BW
- * seconds.
-*/
-#ifndef CONFIG_LORA24_FREQUENCY_HOPPING_PERIOD_DEFAULT
-#define CONFIG_LORA24_FREQUENCY_HOPPING_PERIOD_DEFAULT (0U)
-#endif
-
 /** @brief Set this to 1 to enable fixed header length mode (implicit header)
  *
  * If fixed header length mode ( implicit header mode) is enabled, PHY header
