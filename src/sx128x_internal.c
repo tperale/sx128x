@@ -56,15 +56,6 @@ static void sx128x_wait_busy(const sx128x_t *dev) {
     /* } */
 }
 
-int sx128x_check_version(const sx128x_t *dev)
-{
-    (void)(dev);
-    /* Read version number and compare with sx128x assigned revision */
-    /* uint8_t version = sx128x_reg_read(dev, SX128X_REG_VERSION); */
-
-    return 1;
-}
-
 void sx128x_reg_write(const sx128x_t *dev, uint16_t addr, uint8_t data)
 {
     sx128x_reg_write_burst(dev, addr, &data, 1);
@@ -77,8 +68,6 @@ uint8_t sx128x_reg_read(const sx128x_t *dev, uint16_t addr)
 
 void sx128x_cmd_burst(const sx128x_t *dev, uint8_t cmd, uint8_t *in, uint8_t in_size, uint8_t *out, uint8_t out_size)
 {
-    /* sx128x_wait_busy(dev); */
-
     spi_select(&dev->params.spi);
 
     spi_write_byte(&dev->params.spi, cmd);
@@ -155,31 +144,3 @@ void sx128x_read_fifo(const sx128x_t *dev, uint8_t *buffer, uint8_t size)
 
     spi_deselect(&dev->params.spi);
 }
-
-int16_t sx128x_read_rssi(const sx128x_t *dev)
-{
-    (void)(dev);
-    int16_t rssi = 0;
-
-    return rssi;
-}
-
-void sx128x_start_cad(sx128x_t *dev)
-{
-    (void)(dev);
-}
-
-bool sx128x_is_channel_free(sx128x_t *dev, uint32_t freq, int16_t rssi_threshold)
-{
-    /* sx128x_set_channel(dev, freq); */
-    /* sx128x_set_op_mode(dev, SX128X_RF_OPMODE_RECEIVER); */
-
-    /* ztimer_sleep(ZTIMER_MSEC, 1); /1* wait 1 millisecond *1/ */
-
-    /* rssi = sx128x_read_rssi(dev); */
-    /* sx128x_set_sleep(dev); */
-
-    /* return (rssi <= rssi_threshold); */
-    return 1;
-}
-
