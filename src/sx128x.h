@@ -914,11 +914,11 @@ void sx128x_set_cad(sx128x_t *dev, uint8_t cad_symbols);
 
 extern sx128x_t __sx128x_dev;
 
-/* #ifdef SX128X_DEV_CONF */
-/* #define SX128X_DEV SX128X_DEV_CONF */
-/* #else */
+#ifdef SX128X_DEV_CONF
+#define SX128X_DEV SX128X_DEV_CONF
+#else
 #define SX128X_DEV __sx128x_dev
-/* #endif */
+#endif
 
 extern const struct radio_driver sx128x_radio_driver;
 

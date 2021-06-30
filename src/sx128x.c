@@ -242,6 +242,12 @@ sx128x_pending_packet(void) {
     sx128x_set_state(&SX128X_DEV, SX128X_RF_IDLE);
     sx128x_rx_internal_set(&SX128X_DEV, sx128x_rx_received);
     sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
+  } else if (irq_reg & SX128X_IRQ_REG_SYNC_WORD_ERROR) {
+    LOG_ERR("Sync Word Error\n");
+    sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
+  } else if (irq_reg & SX128X_IRQ_REG_CRC_ERROR) {
+    LOG_ERR("CRC Error\n");
+    sx128x_cmd_clear_irq_status(&SX128X_DEV, SX128X_IRQ_REG_ALL);
   }
 
 #endif
