@@ -248,10 +248,12 @@ enum {
       MAX((float) ( (8 * (len)) - (4 * (sf)) + 8 + (16 * (crc)) + (20 * (header)) ), 0) / (4 * (sf - 2)) \
     ) * ((cr) + 4) \
 )
+#define LORA_SYM_NB(sf, bw, crc, header, cr, prlen, len) ( \
+  (prlen + \
+  ((sf < 7) ? LORA_SYM_NB_5(sf, crc, header, cr, len) : ((sf < 11) ? LORA_SYM_NB_7(sf, crc, header, cr, len) : LORA_SYM_NB_11(sf, crc, header, cr, len)))) \
+)
 #define LORA_T_PACKET_USEC(sf, bw, crc, header, cr, prlen, len) ( \
-  prlen + \
-  ((sf < 7) ? LORA_SYM_NB_5(sf, crc, header, cr, len) : ((sf < 11) ? LORA_SYM_NB_7(sf, crc, header, cr, len) : LORA_SYM_NB_11(sf, crc, header, cr, len))) \
-  * LORA_T_SYM_USEC(sf, bw) \
+  LORA_SYM_NB(sf, bw, crc, header, cr, prlen, len) * LORA_T_SYM_USEC(sf, bw) \
 )
 
 #ifdef __cplusplus
