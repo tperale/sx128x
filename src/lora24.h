@@ -233,24 +233,12 @@ enum {
 #define LORA24_BW_TO_KHZ(x) ((1 << x) * 200)
 #define CEILING_POS(X) ((X-(int)(X)) > 0 ? (int)(X+1) : (int)(X))
 #define LORA_T_SYM_USEC(sf, bw) ((1 << (sf)) * 1000 / (LORA24_BW_TO_KHZ(bw)))
-#define LORA_SYM_NB_5(sf, crc, header, cr, len) ( \
-  6.25 + 8 + CEILING_POS( \
-      MAX((float) ( (8 * (len)) - (4 * (sf)) + (16 * (crc)) + (20 * (header)) ), 0) / (4 * (sf)) \
-    ) * ((cr) + 4) \
-)
-#define LORA_SYM_NB_7(sf, crc, header, cr, len) ( \
-  4.25 + 8 + CEILING_POS( \
-      MAX((float) ( (8 * (len)) - (4 * (sf)) + 8 + (16 * (crc)) + (20 * (header)) ), 0) / (4 * (sf)) \
-    ) * ((cr) + 4) \
-)
-#define LORA_SYM_NB_11(sf, crc, header, cr, len) ( \
-  4.25 + 8 + CEILING_POS( \
-      MAX((float) ( (8 * (len)) - (4 * (sf)) + 8 + (16 * (crc)) + (20 * (header)) ), 0) / (4 * (sf - 2)) \
-    ) * ((cr) + 4) \
-)
 #define LORA_SYM_NB(sf, bw, crc, header, cr, prlen, len) ( \
-  (prlen + \
-  ((sf < 7) ? LORA_SYM_NB_5(sf, crc, header, cr, len) : ((sf < 11) ? LORA_SYM_NB_7(sf, crc, header, cr, len) : LORA_SYM_NB_11(sf, crc, header, cr, len)))) \
+  prlen + \
+   ((sf < 7) ? 6.25 : 4.25) + 8 + (CEILING_POS( \
+    MAX((float) ( (8 * (len)) - (4 * (sf)) + ((sf < 7) ? 0 : 8) + (16 * (crc)) + (20 * (header)) ), 0) \
+    / ((sf < 11) ? (4 * sf) : (4 * (sf - 2)))) \
+   * ((cr) + 4)) \
 )
 #define LORA_T_PACKET_USEC(sf, bw, crc, header, cr, prlen, len) ( \
   LORA_SYM_NB(sf, bw, crc, header, cr, prlen, len) * LORA_T_SYM_USEC(sf, bw) \
